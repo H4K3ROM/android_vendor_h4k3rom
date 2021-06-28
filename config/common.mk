@@ -109,6 +109,11 @@ PRODUCT_PACKAGES += \
 # AOSP packages
 PRODUCT_PACKAGES += \
     Terminal
+    
+# H4K3ROM packages
+PRODUCT_PACKAGES += \
+    H4K3RWalls \
+    H4K3RWebb
 
 # Lineage packages
 PRODUCT_PACKAGES += \
