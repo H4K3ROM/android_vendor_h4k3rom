@@ -209,7 +209,7 @@ endif
 ifndef LINEAGE_BUILDTYPE
     ifdef RELEASE_TYPE
         # Starting with "LINEAGE_" is optional
-        RELEASE_TYPE := $(shell echo $(RELEASE_TYPE) | sed -e 's|^LINEAGE_||g')
+        RELEASE_TYPE := $(shell echo $(RELEASE_TYPE) | sed -e 's|^H4K3ROM_||g')
         LINEAGE_BUILDTYPE := $(RELEASE_TYPE)
     endif
 endif
