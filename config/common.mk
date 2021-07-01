@@ -116,7 +116,11 @@ PRODUCT_PACKAGES += \
     
 #H4K3RWebb packages
 PRODUCT_PACKAGES += \
-    app-release.apk    
+    app-release.apk 
+    
+#H4K3Rom Changelog
+PRODUCT_PACKAGES += \
+    Changelog.html 
 
 # Lineage packages
 PRODUCT_PACKAGES += \
