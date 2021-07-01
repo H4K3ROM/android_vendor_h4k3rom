@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export Changelog="$ANDROID_PRODUCT_OUT/obj/CHANGELOG/Changelog.html"
+export Changelog="$ANDROID_PRODUCT_OUT/Changelog.html"
 
 
 if [ -f $Changelog ];
