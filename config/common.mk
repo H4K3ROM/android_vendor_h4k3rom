@@ -113,9 +113,10 @@ PRODUCT_PACKAGES += \
 # H4K3ROM packages
 PRODUCT_PACKAGES += \
     H4K3RWalls \
-
+    
+#H4K3RWebb packages
 PRODUCT_PACKAGES += \
-    H4K3RWebb/app-release.apk
+    app-release.apk    
 
 # Lineage packages
 PRODUCT_PACKAGES += \
