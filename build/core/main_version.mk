@@ -4,22 +4,25 @@ ADDITIONAL_BUILD_PROPERTIES += \
     ro.build.fingerprint=$(BUILD_FINGERPRINT)
 endif
 
-# LineageOS System Version
+# H4K3ROM System Version
 ADDITIONAL_BUILD_PROPERTIES += \
-    ro.lineage.version=$(LINEAGE_VERSION) \
-    ro.lineage.releasetype=$(LINEAGE_BUILDTYPE) \
-    ro.lineage.build.version=$(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR) \
-    ro.modversion=$(LINEAGE_VERSION) \
-    ro.lineagelegal.url=https://lineageos.org/legal
+    ro.h4k3rom.display.version=$(H4K3ROM_VERSION) \
+    ro.h4k3rom.buildtype=$(H4K3ROM_BUILDTYPE) \
+    ro.h4k3rom.version.update=$(H4K3ROM_BRANCH)-$(VERSION) \
+    ro.modversion=$(H4K3ROM_VERSION) \
+    ro.h4k3rom.version=$(VERSION)-$(H4K3ROM_BUILDTYPE)
 
-# LineageOS Platform Display Version
+# additions for LOS-recovery
 ADDITIONAL_BUILD_PROPERTIES += \
-    ro.lineage.display.version=$(LINEAGE_DISPLAY_VERSION)
+    ro.lineage.build.version=$(VERSION) \
+    ro.lineage.version=-$(shell date +%Y%m%d)_$(shell date +%H%M%S)-
 
-# LineageOS Platform SDK Version
+# H4K3ROM Stats
 ADDITIONAL_BUILD_PROPERTIES += \
-    ro.lineage.build.version.plat.sdk=$(LINEAGE_PLATFORM_SDK_VERSION)
-
-# LineageOS Platform Internal Version
-ADDITIONAL_BUILD_PROPERTIES += \
-    ro.lineage.build.version.plat.rev=$(LINEAGE_PLATFORM_REV)
+    ro.h4k3rom.branch=$(H4K3ROM_BRANCH) \
+    ro.romstats.url=https://stats.h4k3rom-rom.com/ \
+    ro.romstats.name=H4K3ROM \
+    ro.romstats.buildtype=$(H4K3ROM_BUILDTYPE) \
+    ro.romstats.version=$(VERSION) \
+    ro.romstats.tframe=1 \
+    ro.romstats.askfirst=1

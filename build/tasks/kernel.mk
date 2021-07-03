@@ -1,5 +1,5 @@
 # Copyright (C) 2012 The CyanogenMod Project
-#           (C) 2017-2021 The LineageOS Project
+#           (C) 2017-2020 The LineageOS Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@
 #
 #   TARGET_KERNEL_CLANG_PATH           = Clang prebuilts path, optional
 #
+#   KERNEL_SUPPORTS_LLVM_TOOLS         = If set, switches ar, nm, objcopy, objdump to llvm tools instead of using GNU Binutils, optional
+#
 #   BOARD_KERNEL_IMAGE_NAME            = Built image name
 #                                          for ARM use: zImage
 #                                          for ARM64 use: Image.gz
@@ -61,9 +63,6 @@
 #                                          modules in system instead of vendor
 #   NEED_KERNEL_MODULE_VENDOR_OVERLAY  = Optional, if true, install kernel
 #                                          modules in vendor_overlay instead of vendor
-#
-#   TARGET_FORCE_PREBUILT_KERNEL       = Optional, use TARGET_PREBUILT_KERNEL even if
-#                                          kernel sources are present
 
 ifneq ($(TARGET_NO_KERNEL),true)
 ifneq ($(TARGET_NO_KERNEL_OVERRIDE),true)
@@ -156,27 +155,8 @@ else
         $(warning **********************************************************)
         $(error "NO KERNEL CONFIG")
     else
-        ifneq ($(TARGET_FORCE_PREBUILT_KERNEL),)
-            ifneq ($(filter RELEASE NIGHTLY SNAPSHOT EXPERIMENTAL,$(LINEAGE_BUILDTYPE)),)
-                $(error "PREBUILT KERNEL IS NOT ALLOWED ON OFFICIAL BUILDS!")
-            else
-                $(warning **********************************************************)
-                $(warning * Kernel source found and configuration was defined,     *)
-                $(warning * but prebuilt kernel is being forced.                   *)
-                $(warning * While this is likely intentional,                      *)
-                $(warning * it is NOT SUPPORTED WHATSOEVER.                        *)
-                $(warning * Generated kernel headers may not align with            *)
-                $(warning * the ABI of kernel you're including.                    *)
-                $(warning * Please unset TARGET_FORCE_PREBUILT_KERNEL              *)
-                $(warning * to build the kernel from source.                       *)
-                $(warning **********************************************************)
-                FULL_KERNEL_BUILD := false
-                KERNEL_BIN := $(TARGET_PREBUILT_KERNEL)
-            endif
-        else
-            FULL_KERNEL_BUILD := true
-            KERNEL_BIN := $(TARGET_PREBUILT_INT_KERNEL)
-        endif
+        FULL_KERNEL_BUILD := true
+        KERNEL_BIN := $(TARGET_PREBUILT_INT_KERNEL)
     endif
 endif
 
@@ -216,7 +196,24 @@ ifeq ($(TARGET_KERNEL_CLANG_COMPILE),true)
         # Use the default version of clang if TARGET_KERNEL_CLANG_VERSION hasn't been set by the device config
         KERNEL_CLANG_VERSION := $(LLVM_PREBUILTS_VERSION)
     endif
+    # Use the AOSP clang path if TARGET_KERNEL_CLANG_PATH hasn't been set by the device config
     TARGET_KERNEL_CLANG_PATH ?= $(BUILD_TOP)/prebuilts/clang/host/$(HOST_PREBUILT_TAG)/$(KERNEL_CLANG_VERSION)
+    # Set LLVM tools if supported
+    ifeq ($(KERNEL_SUPPORTS_LLVM_TOOLS),true)
+        KERNEL_LD := LD=ld.lld
+        KERNEL_AR := AR=llvm-ar
+        KERNEL_OBJCOPY := OBJCOPY=llvm-objcopy
+        KERNEL_OBJDUMP := OBJDUMP=llvm-objdump
+        KERNEL_NM := NM=llvm-nm
+        KERNEL_STRIP := STRIP=llvm-strip
+    else
+        KERNEL_LD :=
+        KERNEL_AR :=
+        KERNEL_OBJCOPY :=
+        KERNEL_OBJDUMP :=
+        KERNEL_NM :=
+        KERNEL_STRIP :=
+    endif
     ifeq ($(KERNEL_ARCH),arm64)
         KERNEL_CLANG_TRIPLE ?= CLANG_TRIPLE=aarch64-linux-gnu-
     else ifeq ($(KERNEL_ARCH),arm)
@@ -248,7 +245,7 @@ KERNEL_ADDITIONAL_CONFIG_OUT := $(KERNEL_OUT)/.additional_config
 # $(1): output path (The value passed to O=)
 # $(2): target to build (eg. defconfig, modules, dtbo.img)
 define internal-make-kernel-target
-$(PATH_OVERRIDE) $(KERNEL_MAKE_CMD) $(KERNEL_MAKE_FLAGS) -C $(KERNEL_SRC) O=$(KERNEL_BUILD_OUT_PREFIX)$(1) ARCH=$(KERNEL_ARCH) $(KERNEL_CROSS_COMPILE) $(KERNEL_CLANG_TRIPLE) $(KERNEL_CC) $(KERNEL_LD) $(2)
+$(PATH_OVERRIDE) $(KERNEL_MAKE_CMD) $(KERNEL_MAKE_FLAGS) -C $(KERNEL_SRC) O=$(KERNEL_BUILD_OUT_PREFIX)$(1) ARCH=$(KERNEL_ARCH) $(KERNEL_CROSS_COMPILE) $(KERNEL_CLANG_TRIPLE) $(KERNEL_CC) $(KERNEL_LD) $(KERNEL_AR) $(KERNEL_NM) $(KERNEL_OBJCOPY) $(KERNEL_OBJDUMP) $(KERNEL_STRIP) $(2)
 endef
 
 # Make a kernel target

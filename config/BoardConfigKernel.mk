@@ -41,6 +41,9 @@ BUILD_TOP := $(shell pwd)
 
 TARGET_AUTO_KDIR := $(shell echo $(TARGET_DEVICE_DIR) | sed -e 's/^device/kernel/g')
 TARGET_KERNEL_SOURCE ?= $(TARGET_AUTO_KDIR)
+ifneq ($(TARGET_PREBUILT_KERNEL),)
+TARGET_KERNEL_SOURCE :=
+endif
 
 TARGET_KERNEL_ARCH := $(strip $(TARGET_KERNEL_ARCH))
 ifeq ($(TARGET_KERNEL_ARCH),)
@@ -101,7 +104,7 @@ endif
 KERNEL_MAKE_FLAGS :=
 
 # Add back threads, ninja cuts this to $(nproc)/2
-KERNEL_MAKE_FLAGS += -j$(shell prebuilts/tools-lineage/$(HOST_PREBUILT_TAG)/bin/nproc --all)
+KERNEL_MAKE_FLAGS += -j$(shell prebuilts/tools-h4k3rom/$(HOST_PREBUILT_TAG)/bin/nproc --all)
 
 ifeq ($(KERNEL_ARCH),arm)
   # Avoid "Unknown symbol _GLOBAL_OFFSET_TABLE_" errors
@@ -124,9 +127,9 @@ ifneq ($(TARGET_KERNEL_ADDITIONAL_FLAGS),)
 endif
 
 TOOLS_PATH_OVERRIDE := \
-    PATH=$(BUILD_TOP)/prebuilts/tools-lineage/$(HOST_PREBUILT_TAG)/bin:$$PATH \
-    LD_LIBRARY_PATH=$(BUILD_TOP)/prebuilts/tools-lineage/$(HOST_PREBUILT_TAG)/lib:$$LD_LIBRARY_PATH \
-    PERL5LIB=$(BUILD_TOP)/prebuilts/tools-lineage/common/perl-base
+    PATH=$(BUILD_TOP)/prebuilts/tools-h4k3rom/$(HOST_PREBUILT_TAG)/bin:$$PATH \
+    LD_LIBRARY_PATH=$(BUILD_TOP)/prebuilts/tools-h4k3rom/$(HOST_PREBUILT_TAG)/lib:$$LD_LIBRARY_PATH \
+    PERL5LIB=$(BUILD_TOP)/prebuilts/tools-h4k3rom/common/perl-base
 
 # Set DTBO image locations so the build system knows to build them
 ifeq (true,$(filter true, $(TARGET_NEEDS_DTBOIMAGE) $(BOARD_KERNEL_SEPARATED_DTBO)))

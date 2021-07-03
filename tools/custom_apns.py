@@ -21,7 +21,7 @@ from xml.dom.minidom import parseString
 def main(argv):
     reload(sys)
     sys.setdefaultencoding('utf8')
-    original_file = 'vendor/lineage/prebuilt/common/etc/apns-conf.xml'
+    original_file = 'vendor/aicp/prebuilt/common/etc/apns-conf.xml'
 
     if len(argv) == 3:
         output_file_path = argv[1]
@@ -34,7 +34,7 @@ def main(argv):
         for line in f:
             xmltree = parseString(line)
             carrier = xmltree.getElementsByTagName('apn')[0].getAttribute('carrier')
-            custom_apn_names.append('"' + carrier + '"')
+            custom_apn_names.append(carrier)
 
     with open(original_file, 'r') as input_file:
         with open(output_file_path, 'w') as output_file:

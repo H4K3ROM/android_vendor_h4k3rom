@@ -1,16 +1,16 @@
-function __print_lineage_functions_help() {
+function __print_h4k3rom_functions_help() {
 cat <<EOF
-Additional LineageOS functions:
+Additional H4K3ROM functions:
 - cout:            Changes directory to out.
 - mmp:             Builds all of the modules in the current directory and pushes them to the device.
 - mmap:            Builds all of the modules in the current directory and its dependencies, then pushes the package to the device.
 - mmmp:            Builds all of the modules in the supplied directories and pushes them to the device.
-- lineagegerrit:   A Git wrapper that fetches/pushes patch from/to LineageOS Gerrit Review.
-- lineagerebase:   Rebase a Gerrit change and push it again.
-- lineageremote:   Add git remote for LineageOS Gerrit Review.
+- h4k3romgerrit:   A Git wrapper that fetches/pushes patch from/to H4K3ROM Gerrit Review.
+- h4k3romrebase:   Rebase a Gerrit change and push it again.
+- h4k3romremote:   Add git remote for H4K3ROM Gerrit Review.
 - aospremote:      Add git remote for matching AOSP repository.
 - cafremote:       Add git remote for matching CodeAurora repository.
-- githubremote:    Add git remote for LineageOS Github.
+- githubremote:    Add git remote for H4K3ROM Github.
 - mka:             Builds using SCHED_BATCH on all processors.
 - mkap:            Builds the module(s) using mka and pushes them to the device.
 - cmka:            Cleans and builds using mka.
@@ -64,6 +64,18 @@ function brunch()
     return $?
 }
 
+function brunchopen()
+{
+    breakfast $*
+    if [ $? -eq 0 ]; then
+        mka bacon && xdg-open $ANDROID_PRODUCT_OUT
+    else
+        echo "No such item in brunch menu. Try 'breakfast'"
+        return 1
+    fi
+    return $?
+}
+
 function breakfast()
 {
     target=$1
@@ -77,12 +89,12 @@ function breakfast()
             # A buildtype was specified, assume a full device name
             lunch $target
         else
-            # This is probably just the Lineage model name
+            # This is probably just the H4K3ROM model name
             if [ -z "$variant" ]; then
                 variant="userdebug"
             fi
 
-            lunch lineage_$target-$variant
+            lunch h4k3rom_$target-$variant
         fi
     fi
     return $?
@@ -93,21 +105,21 @@ alias bib=breakfast
 function eat()
 {
     if [ "$OUT" ] ; then
-        ZIPPATH=`ls -tr "$OUT"/lineage-*.zip | tail -1`
+        ZIPPATH=`ls -tr "$OUT"/h4k3rom_*.zip | tail -1`
         if [ ! -f $ZIPPATH ] ; then
             echo "Nothing to eat"
             return 1
         fi
         echo "Waiting for device..."
-        adb wait-for-device-recovery
+        adb wait-for-online
         echo "Found device"
-        if (adb shell getprop ro.lineage.device | grep -q "$LINEAGE_BUILD"); then
+        if (adb shell getprop ro.h4k3rom.device | grep -q "$H4K3ROM_BUILD"); then
             echo "Rebooting to sideload for install"
             adb reboot sideload-auto-reboot
             adb wait-for-sideload
             adb sideload $ZIPPATH
         else
-            echo "The connected device does not appear to be $LINEAGE_BUILD, run away!"
+            echo "The connected device does not appear to be $H4K3ROM_BUILD, run away!"
         fi
         return $?
     else
@@ -231,43 +243,43 @@ function dddclient()
    fi
 }
 
-function lineageremote()
+function h4k3romremote()
 {
     if ! git rev-parse --git-dir &> /dev/null
     then
         echo ".git directory not found. Please run this from the root directory of the Android repository you wish to set up."
         return 1
     fi
-    git remote rm lineage 2> /dev/null
+    git remote rm h4k3rom 2> /dev/null
     local REMOTE=$(git config --get remote.github.projectname)
-    local LINEAGE="true"
+    local H4K3ROM="true"
     if [ -z "$REMOTE" ]
     then
         REMOTE=$(git config --get remote.aosp.projectname)
-        LINEAGE="false"
+        H4K3ROM="false"
     fi
     if [ -z "$REMOTE" ]
     then
         REMOTE=$(git config --get remote.caf.projectname)
-        LINEAGE="false"
+        H4K3ROM="false"
     fi
 
-    if [ $LINEAGE = "false" ]
+    if [ $H4K3ROM = "false" ]
     then
         local PROJECT=$(echo $REMOTE | sed -e "s#platform/#android/#g; s#/#_#g")
-        local PFX="LineageOS/"
+        local PFX="H4K3ROM/"
     else
         local PROJECT=$REMOTE
     fi
 
-    local LINEAGE_USER=$(git config --get review.review.lineageos.org.username)
-    if [ -z "$LINEAGE_USER" ]
+    local H4K3ROM_USER=$(git config --get review.gerrit.h4k3rom-rom.username)
+    if [ -z "$H4K3ROM_USER" ]
     then
-        git remote add lineage ssh://review.lineageos.org:29418/$PFX$PROJECT
+        git remote add h4k3rom ssh://gerrit.h4k3rom-rom:29418/$PFX$PROJECT
     else
-        git remote add lineage ssh://$LINEAGE_USER@review.lineageos.org:29418/$PFX$PROJECT
+        git remote add h4k3rom ssh://$H4K3ROM_USER@gerrit.h4k3rom-rom:29418/$PFX$PROJECT
     fi
-    echo "Remote 'lineage' created"
+    echo "Remote 'h4k3rom' created"
 }
 
 function aospremote()
@@ -335,7 +347,7 @@ function githubremote()
 
     local PROJECT=$(echo $REMOTE | sed -e "s#platform/#android/#g; s#/#_#g")
 
-    git remote add github https://github.com/LineageOS/$PROJECT
+    git remote add github https://github.com/H4K3ROM/$PROJECT
     echo "Remote 'github' created"
 }
 
@@ -363,17 +375,17 @@ function installboot()
             return 1
         fi
     fi
-    adb wait-for-device-recovery
+    adb wait-for-online
     adb root
-    adb wait-for-device-recovery
-    if (adb shell getprop ro.lineage.device | grep -q "$LINEAGE_BUILD");
+    adb wait-for-online
+    if (adb shell getprop ro.h4k3rom.device | grep -q "$H4K3ROM_BUILD");
     then
         adb push $OUT/boot.img /cache/
         adb shell dd if=/cache/boot.img of=$PARTITION
         adb shell rm -rf /cache/boot.img
         echo "Installation complete."
     else
-        echo "The connected device does not appear to be $LINEAGE_BUILD, run away!"
+        echo "The connected device does not appear to be $H4K3ROM_BUILD, run away!"
     fi
 }
 
@@ -401,17 +413,17 @@ function installrecovery()
             return 1
         fi
     fi
-    adb wait-for-device-recovery
+    adb wait-for-online
     adb root
-    adb wait-for-device-recovery
-    if (adb shell getprop ro.lineage.device | grep -q "$LINEAGE_BUILD");
+    adb wait-for-online
+    if (adb shell getprop ro.h4k3rom.device | grep -q "$H4K3ROM_BUILD");
     then
         adb push $OUT/recovery.img /cache/
         adb shell dd if=/cache/recovery.img of=$PARTITION
         adb shell rm -rf /cache/recovery.img
         echo "Installation complete."
     else
-        echo "The connected device does not appear to be $LINEAGE_BUILD, run away!"
+        echo "The connected device does not appear to be $H4K3ROM_BUILD, run away!"
     fi
 }
 
@@ -431,13 +443,13 @@ function makerecipe() {
     if [ "$REPO_REMOTE" = "github" ]
     then
         pwd
-        lineageremote
-        git push lineage HEAD:refs/heads/'$1'
+        h4k3romremote
+        git push h4k3rom HEAD:refs/heads/'$1'
     fi
     '
 }
 
-function lineagegerrit() {
+function h4k3romgerrit() {
     if [ "$(basename $SHELL)" = "zsh" ]; then
         # zsh does not define FUNCNAME, derive from funcstack
         local FUNCNAME=$funcstack[1]
@@ -447,7 +459,7 @@ function lineagegerrit() {
         $FUNCNAME help
         return 1
     fi
-    local user=`git config --get review.review.lineageos.org.username`
+    local user=`git config --get review.gerrit.h4k3rom-rom.com.username`
     local review=`git config --get remote.github.review`
     local project=`git config --get remote.github.projectname`
     local command=$1
@@ -483,7 +495,7 @@ EOF
             case $1 in
                 __cmg_*) echo "For internal use only." ;;
                 changes|for)
-                    if [ "$FUNCNAME" = "lineagegerrit" ]; then
+                    if [ "$FUNCNAME" = "h4k3romgerrit" ]; then
                         echo "'$FUNCNAME $1' is deprecated."
                     fi
                     ;;
@@ -576,7 +588,7 @@ EOF
                 ${local_branch}:refs/for/$remote_branch || return 1
             ;;
         changes|for)
-            if [ "$FUNCNAME" = "lineagegerrit" ]; then
+            if [ "$FUNCNAME" = "h4k3romgerrit" ]; then
                 echo >&2 "'$FUNCNAME $command' is deprecated."
             fi
             ;;
@@ -675,15 +687,15 @@ EOF
     esac
 }
 
-function lineagerebase() {
+function h4k3romrebase() {
     local repo=$1
     local refs=$2
     local pwd="$(pwd)"
     local dir="$(gettop)/$repo"
 
     if [ -z $repo ] || [ -z $refs ]; then
-        echo "LineageOS Gerrit Rebase Usage: "
-        echo "      lineagerebase <path to project> <patch IDs on Gerrit>"
+        echo "H4K3ROM Gerrit Rebase Usage: "
+        echo "      h4k3romrebase <path to project> <patch IDs on Gerrit>"
         echo "      The patch IDs appear on the Gerrit commands that are offered."
         echo "      They consist on a series of numbers and slashes, after the text"
         echo "      refs/changes. For example, the ID in the following command is 26/8126/2"
@@ -704,7 +716,7 @@ function lineagerebase() {
     echo "Bringing it up to date..."
     repo sync .
     echo "Fetching change..."
-    git fetch "http://review.lineageos.org/p/$repo" "refs/changes/$refs" && git cherry-pick FETCH_HEAD
+    git fetch "http://gerrit.h4k3rom-rom.com/p/$repo" "refs/changes/$refs" && git cherry-pick FETCH_HEAD
     if [ "$?" != "0" ]; then
         echo "Error cherry-picking. Not uploading!"
         return
@@ -788,7 +800,7 @@ function dopush()
         echo "Device Found."
     fi
 
-    if (adb shell getprop ro.lineage.device | grep -q "$LINEAGE_BUILD") || [ "$FORCE_PUSH" = "true" ];
+    if (adb shell getprop ro.h4k3rom.device | grep -q "$H4K3ROM_BUILD") || [ "$FORCE_PUSH" = "true" ];
     then
     # retrieve IP and PORT info if we're using a TCP connection
     TCPIPPORT=$(adb devices \
@@ -803,6 +815,7 @@ function dopush()
         adb connect "$TCPIPPORT"
     fi
     adb wait-for-device &> /dev/null
+    sleep 0.3
     adb remount &> /dev/null
 
     mkdir -p $OUT
@@ -907,7 +920,7 @@ EOF
     rm -f $OUT/.log
     return 0
     else
-        echo "The connected device does not appear to be $LINEAGE_BUILD, run away!"
+        echo "The connected device does not appear to be $H4K3ROM_BUILD, run away!"
     fi
 }
 
@@ -920,14 +933,14 @@ alias cmkap='dopush cmka'
 
 function repopick() {
     T=$(gettop)
-    $T/vendor/lineage/build/tools/repopick.py $@
+    $T/vendor/h4k3rom/build/tools/repopick.py $@
 }
 
 function fixup_common_out_dir() {
     common_out_dir=$(get_build_var OUT_DIR)/target/common
     target_device=$(get_build_var TARGET_DEVICE)
     common_target_out=common-${target_device}
-    if [ ! -z $LINEAGE_FIXUP_COMMON_OUT ]; then
+    if [ ! -z $H4K3ROM_FIXUP_COMMON_OUT ]; then
         if [ -d ${common_out_dir} ] && [ ! -L ${common_out_dir} ]; then
             mv ${common_out_dir} ${common_out_dir}-${target_device}
             ln -s ${common_target_out} ${common_out_dir}

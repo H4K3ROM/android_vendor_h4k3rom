@@ -153,12 +153,12 @@ def fetch_query(remote_url, query):
 
 
 if __name__ == '__main__':
-    # Default to LineageOS Gerrit
-    default_gerrit = 'https://review.lineageos.org'
+    # Default to AICP Gerrit
+    default_gerrit = 'https://gerrit.h4k3rom-rom.com'
 
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=textwrap.dedent('''\
         repopick.py is a utility to simplify the process of cherry picking
-        patches from LineageOS's Gerrit instance (or any gerrit instance of your choosing)
+        patches from AICP's Gerrit instance (or any gerrit instance of your choosing)
 
         Given a list of change numbers, repopick will cd into the project path
         and cherry pick the latest patch available.
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--force', action='store_true', help='force cherry pick even if change is closed')
     parser.add_argument('-p', '--pull', action='store_true', help='execute pull instead of cherry-pick')
     parser.add_argument('-P', '--path', metavar='', help='use the specified path for the change')
-    parser.add_argument('-t', '--topic', metavar='', help='pick all commits from a specified topic')
+    parser.add_argument('-t', '--topic', metavar='', nargs='*', help='pick all commits from the specified topics')
     parser.add_argument('-Q', '--query', metavar='', help='pick all commits using the specified query')
     parser.add_argument('-g', '--gerrit', default=default_gerrit,
                         metavar='', help='Gerrit Instance to use. Form proto://[user@]host[:port]')
@@ -292,8 +292,13 @@ if __name__ == '__main__':
             return cmp(review_a['number'], review_b['number'])
 
     if args.topic:
-        reviews = fetch_query(args.gerrit, 'topic:{0}'.format(args.topic))
-        change_numbers = [str(r['number']) for r in sorted(reviews, key=cmp_to_key(cmp_reviews))]
+        for t in args.topic:
+            # Store current topic to process for change_numbers
+            topic = fetch_query(args.gerrit, 'topic:{0}'.format(t))
+            # Append topic to reviews, for later reference
+            reviews += topic
+            # Cycle through the current topic to get the change numbers
+            change_numbers += sorted([str(r['number']) for r in topic], key=int)
     if args.query:
         reviews = fetch_query(args.gerrit, args.query)
         change_numbers = [str(r['number']) for r in sorted(reviews, key=cmp_to_key(cmp_reviews))]

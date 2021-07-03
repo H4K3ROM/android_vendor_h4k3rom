@@ -1,93 +1,45 @@
 # Allow vendor/extra to override any property by setting it first
 $(call inherit-product-if-exists, vendor/extra/product.mk)
 
-PRODUCT_BRAND ?= H4K3ROM
-
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
-ifeq ($(PRODUCT_GMS_CLIENTID_BASE),)
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
-    ro.com.google.clientidbase=android-google
-else
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
-    ro.com.google.clientidbase=$(PRODUCT_GMS_CLIENTID_BASE)
-endif
+# Include H4K3ROM version
+include vendor/h4k3rom/config/h4k3rom_version.mk
 
-ifeq ($(TARGET_BUILD_VARIANT),eng)
-# Disable ADB authentication
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += ro.adb.secure=0
-else
-# Enable ADB authentication
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += ro.adb.secure=1
+# Include H4K3ROM packages
+include vendor/h4k3rom/config/h4k3rom_packages.mk
+
+# Include H4K3ROM version
+include vendor/h4k3rom/config/h4k3rom_props.mk
+
+# AOSP recovery flashing
+ifeq ($(TARGET_USES_AOSP_RECOVERY),true)
+PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
+    persist.sys.recovery_update=true
+endif
 
 # Disable extra StrictMode features on all non-engineering builds
 PRODUCT_SYSTEM_DEFAULT_PROPERTIES += persist.sys.strictmode.disable=true
-endif
-
-# Backup Tool
-PRODUCT_COPY_FILES += \
-    vendor/lineage/prebuilt/common/bin/backuptool.sh:install/bin/backuptool.sh \
-    vendor/lineage/prebuilt/common/bin/backuptool.functions:install/bin/backuptool.functions \
-    vendor/lineage/prebuilt/common/bin/50-lineage.sh:$(TARGET_COPY_OUT_SYSTEM)/addon.d/50-lineage.sh
-
-ifneq ($(strip $(AB_OTA_PARTITIONS) $(AB_OTA_POSTINSTALL_CONFIG)),)
-PRODUCT_COPY_FILES += \
-    vendor/lineage/prebuilt/common/bin/backuptool_ab.sh:$(TARGET_COPY_OUT_SYSTEM)/bin/backuptool_ab.sh \
-    vendor/lineage/prebuilt/common/bin/backuptool_ab.functions:$(TARGET_COPY_OUT_SYSTEM)/bin/backuptool_ab.functions \
-    vendor/lineage/prebuilt/common/bin/backuptool_postinstall.sh:$(TARGET_COPY_OUT_SYSTEM)/bin/backuptool_postinstall.sh
-ifneq ($(TARGET_BUILD_VARIANT),user)
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
-    ro.ota.allow_downgrade=true
-endif
-endif
-
-# Backup Services whitelist
-PRODUCT_COPY_FILES += \
-    vendor/lineage/config/permissions/backup.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/backup.xml
-
-# Lineage-specific broadcast actions whitelist
-PRODUCT_COPY_FILES += \
-    vendor/lineage/config/permissions/lineage-sysconfig.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/lineage-sysconfig.xml
-
-# Copy all Lineage-specific init rc files
-$(foreach f,$(wildcard vendor/lineage/prebuilt/common/etc/init/*.rc),\
-	$(eval PRODUCT_COPY_FILES += $(f):$(TARGET_COPY_OUT_SYSTEM)/etc/init/$(notdir $f)))
-
-# Enable Android Beam on all targets
-PRODUCT_COPY_FILES += \
-    vendor/lineage/config/permissions/android.software.nfc.beam.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.nfc.beam.xml
-
-# Enable SIP+VoIP on all targets
-PRODUCT_COPY_FILES += \
-    frameworks/native/data/etc/android.software.sip.voip.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.sip.voip.xml
-
-# Enable wireless Xbox 360 controller support
-PRODUCT_COPY_FILES += \
-    frameworks/base/data/keyboards/Vendor_045e_Product_028e.kl:$(TARGET_COPY_OUT_SYSTEM)/usr/keylayout/Vendor_045e_Product_0719.kl
-
-# This is Lineage!
-PRODUCT_COPY_FILES += \
-    vendor/lineage/config/permissions/org.lineageos.android.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/org.lineageos.android.xml
-
-# Enforce privapp-permissions whitelist
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
-    ro.control_privapp_permissions=enforce
 
 # Include AOSP audio files
-include vendor/lineage/config/aosp_audio.mk
+include vendor/h4k3rom/config/aosp_audio.mk
 
-# Include Lineage audio files
-include vendor/lineage/config/lineage_audio.mk
+# Google sounds
+include vendor/h4k3rom/google/GoogleAudio.mk
 
-ifneq ($(TARGET_DISABLE_LINEAGE_SDK), true)
-# Lineage SDK
-include vendor/lineage/config/lineage_sdk_common.mk
-endif
+PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += vendor/h4k3rom/overlay
+PRODUCT_PACKAGE_OVERLAYS += vendor/h4k3rom/overlay/common
 
 # TWRP
-ifeq ($(WITH_TWRP),true)
-include vendor/lineage/config/twrp.mk
+ifeq ($(BUILD_TWRP),true)
+RECOVERY_TYPE := twrp
+else
+RECOVERY_TYPE := aosp
 endif
+
+# Copy all H4K3ROM specific init rc files
+$(foreach f,$(wildcard vendor/h4k3rom/prebuilt/common/etc/init/*.rc),\
+    $(eval PRODUCT_COPY_FILES += $(f):system/etc/init/$(notdir $f)))
 
 # Do not include art debug targets
 PRODUCT_ART_TARGET_INCLUDE_DEBUG_BUILD := false
@@ -100,224 +52,90 @@ PRODUCT_MINIMIZE_JAVA_DEBUG_INFO := true
 # Disable vendor restrictions
 PRODUCT_RESTRICT_VENDOR_FILES := false
 
-# Bootanimation
-TARGET_SCREEN_WIDTH ?= 1080
-TARGET_SCREEN_HEIGHT ?= 1920
-PRODUCT_PACKAGES += \
-    bootanimation.zip
+# Clean cache script
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/prebuilt/common/bin/clean_cache.sh:$(TARGET_COPY_OUT_SYSTEM)/bin/clean_cache.sh
 
-# AOSP packages
-PRODUCT_PACKAGES += \
-    Terminal
-    
-# H4K3ROM packages
-PRODUCT_PACKAGES += \
-    H4K3RWalls \
-    
-#H4K3RWebb packages
-PRODUCT_PACKAGES += \
-    app-release.apk 
-    
-#H4K3Rom Changelog
-PRODUCT_PACKAGES += \
-    Changelog.html 
+# Backup Tool
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/prebuilt/common/bin/backuptool.sh:install/bin/backuptool.sh \
+    vendor/h4k3rom/prebuilt/common/bin/backuptool.functions:install/bin/backuptool.functions \
+    vendor/h4k3rom/prebuilt/common/bin/50-h4k3rom.sh:$(TARGET_COPY_OUT_SYSTEM)/addon.d/50-h4k3rom.sh
 
-# Lineage packages
-PRODUCT_PACKAGES += \
-    LineageParts \
-    LineageSettingsProvider \
-    LineageSetupWizard \
-    Updater
-
-# Themes
-PRODUCT_PACKAGES += \
-    LineageThemesStub \
-    ThemePicker
-
-# Config
-PRODUCT_PACKAGES += \
-    SimpleDeviceConfig
-
-# Extra tools in Lineage
-PRODUCT_PACKAGES += \
-    7z \
-    bash \
-    curl \
-    getcap \
-    htop \
-    lib7z \
-    libsepol \
-    nano \
-    pigz \
-    setcap \
-    unrar \
-    vim \
-    wget \
-    zip
-
-# Filesystems tools
-PRODUCT_PACKAGES += \
-    fsck.ntfs \
-    mke2fs \
-    mkfs.ntfs \
-    mount.ntfs
-
-# Openssh
-PRODUCT_PACKAGES += \
-    scp \
-    sftp \
-    ssh \
-    sshd \
-    sshd_config \
-    ssh-keygen \
-    start-ssh
-
-# rsync
-PRODUCT_PACKAGES += \
-    rsync
-
-# Storage manager
-PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
-    ro.storage_manager.enabled=true
-
-# These packages are excluded from user builds
-PRODUCT_PACKAGES_DEBUG += \
-    procmem
-
-# Root
-PRODUCT_PACKAGES += \
-    adb_root
+ifneq ($(strip $(AB_OTA_PARTITIONS) $(AB_OTA_POSTINSTALL_CONFIG)),)
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/prebuilt/common/bin/backuptool_ab.sh:$(TARGET_COPY_OUT_SYSTEM)/bin/backuptool_ab.sh \
+    vendor/h4k3rom/prebuilt/common/bin/backuptool_ab.functions:$(TARGET_COPY_OUT_SYSTEM)/bin/backuptool_ab.functions \
+    vendor/h4k3rom/prebuilt/common/bin/backuptool_postinstall.sh:$(TARGET_COPY_OUT_SYSTEM)/bin/backuptool_postinstall.sh
 ifneq ($(TARGET_BUILD_VARIANT),user)
-ifeq ($(WITH_SU),true)
-PRODUCT_PACKAGES += \
-    su
+PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
+    ro.ota.allow_downgrade=true
 endif
 endif
+
+# system mount
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/prebuilt/common/bin/system-mount.sh:install/bin/system-mount.sh
 
 # Dex preopt
 PRODUCT_DEXPREOPT_SPEED_APPS += \
-    SystemUI
+    SystemUI \
+    Launcher3QuickStep
 
-PRODUCT_ENFORCE_RRO_EXCLUDED_OVERLAYS += vendor/lineage/overlay
-DEVICE_PACKAGE_OVERLAYS += vendor/lineage/overlay/common
+# Backup Services whitelist
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/config/permissions/backup.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/backup.xml \
+    vendor/h4k3rom/config/permissions/privapp-permissions-livedisplay.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-livedisplay.xml
 
-PRODUCT_VERSION_MAJOR = 18
-PRODUCT_VERSION_MINOR = 1
-PRODUCT_VERSION_MAINTENANCE := 0
+# H4K3ROM permissions
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/config/permissions/privapp-permissions-h4k3rom-system.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/privapp-permissions-h4k3rom.xml \
+    vendor/h4k3rom/config/permissions/privapp-permissions-h4k3rom-system-ext.xml:$(TARGET_COPY_OUT_SYSTEM_EXT)/etc/permissions/privapp-permissions-h4k3rom.xml \
+    vendor/h4k3rom/config/permissions/privapp-permissions-h4k3rom-product.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-h4k3rom.xml
 
-ifeq ($(TARGET_VENDOR_SHOW_MAINTENANCE_VERSION),true)
-    LINEAGE_VERSION_MAINTENANCE := $(PRODUCT_VERSION_MAINTENANCE)
-else
-    LINEAGE_VERSION_MAINTENANCE := 0
-endif
+# Hidden API whitelist
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/config/permissions/lineage-hiddenapi-package-whitelist.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/lineage-hiddenapi-package-whitelist.xml
 
-# Set LINEAGE_BUILDTYPE from the env RELEASE_TYPE, for jenkins compat
+# Fonts
+PRODUCT_COPY_FILES += \
+    $(call find-copy-subdir-files,*,vendor/h4k3rom/prebuilt/common/fonts,$(TARGET_COPY_OUT_PRODUCT)/fonts) \
+    vendor/h4k3rom/prebuilt/common/etc/fonts_customization.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/fonts_customization.xml
 
-ifndef LINEAGE_BUILDTYPE
-    ifdef RELEASE_TYPE
-        # Starting with "LINEAGE_" is optional
-        RELEASE_TYPE := $(shell echo $(RELEASE_TYPE) | sed -e 's|^H4K3ROM_||g')
-        LINEAGE_BUILDTYPE := $(RELEASE_TYPE)
-    endif
-endif
+# Enable Android Beam on all targets
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/config/permissions/android.software.nfc.beam.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.nfc.beam.xml
 
-# Filter out random types, so it'll reset to UNOFFICIAL
-ifeq ($(filter RELEASE NIGHTLY SNAPSHOT EXPERIMENTAL,$(LINEAGE_BUILDTYPE)),)
-    LINEAGE_BUILDTYPE :=
-endif
+# Enable SIP+VoIP on all targets
+PRODUCT_COPY_FILES += \
+    frameworks/native/data/etc/android.software.sip.voip.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.sip.voip.xml
 
-ifdef LINEAGE_BUILDTYPE
-    ifneq ($(LINEAGE_BUILDTYPE), SNAPSHOT)
-        ifdef LINEAGE_EXTRAVERSION
-            # Force build type to EXPERIMENTAL
-            LINEAGE_BUILDTYPE := EXPERIMENTAL
-            # Remove leading dash from LINEAGE_EXTRAVERSION
-            LINEAGE_EXTRAVERSION := $(shell echo $(LINEAGE_EXTRAVERSION) | sed 's/-//')
-            # Add leading dash to LINEAGE_EXTRAVERSION
-            LINEAGE_EXTRAVERSION := -$(LINEAGE_EXTRAVERSION)
-        endif
-    else
-        ifndef LINEAGE_EXTRAVERSION
-            # Force build type to EXPERIMENTAL, SNAPSHOT mandates a tag
-            LINEAGE_BUILDTYPE := EXPERIMENTAL
-        else
-            # Remove leading dash from LINEAGE_EXTRAVERSION
-            LINEAGE_EXTRAVERSION := $(shell echo $(LINEAGE_EXTRAVERSION) | sed 's/-//')
-            # Add leading dash to LINEAGE_EXTRAVERSION
-            LINEAGE_EXTRAVERSION := -$(LINEAGE_EXTRAVERSION)
-        endif
-    endif
-else
-    # If LINEAGE_BUILDTYPE is not defined, set to UNOFFICIAL
-    LINEAGE_BUILDTYPE := UNOFFICIAL
-    LINEAGE_EXTRAVERSION :=
-endif
+# Copy over added mimetype supported in libcore.net.MimeUtils
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/prebuilt/common/lib/content-types.properties:$(TARGET_COPY_OUT_SYSTEM)/lib/content-types.properties
 
-ifeq ($(LINEAGE_BUILDTYPE), UNOFFICIAL)
-    ifneq ($(TARGET_UNOFFICIAL_BUILD_ID),)
-        LINEAGE_EXTRAVERSION := -$(TARGET_UNOFFICIAL_BUILD_ID)
-    endif
-endif
+# Google extra permissions and features
+PRODUCT_COPY_FILES += \
+#    vendor/h4k3rom/config/permissions/android.software.live_wallpaper.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.live_wallpaper.xml \
+    vendor/h4k3rom/config/permissions/com.google.android.dialer.support.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/com.google.android.dialer.support.xml \
+    vendor/h4k3rom/config/permissions/com.google.android.feature.ANDROID_ONE_EXPERIENCE.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/com.google.android.feature.ANDROID_ONE_EXPERIENCE.xml \
+#    vendor/h4k3rom/config/permissions/privapp-permissions-platform.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/privapp-permissions-platform.xml \
+    vendor/h4k3rom/config/permissions/privapp-permissions-google.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/privapp-permissions-google.xml \
+    vendor/h4k3rom/config/permissions/privapp-permissions-google-product.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-google-product.xml \
+    vendor/h4k3rom/config/permissions/privapp-permissions-hotword.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/privapp-permissions-hotword.xml \
+    vendor/h4k3rom/config/permissions/google_build.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/google_build.xml \
+    vendor/h4k3rom/config/permissions/google-hiddenapi-package-whitelist.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/google-hiddenapi-package-whitelist.xml \
+#    vendor/h4k3rom/config/permissions/hiddenapi-package-whitelist.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/hiddenapi-package-whitelist.xml \
+    vendor/h4k3rom/config/permissions/nexus.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/nexus.xml \
+    vendor/h4k3rom/config/permissions/pixel_2016_exclusive.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/pixel_2016_exclusive.xml \
+    vendor/h4k3rom/config/permissions/pixel_2017_exclusive.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/pixel_2017_exclusive.xml \
+    vendor/h4k3rom/config/permissions/pixel_2018_exclusive.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/pixel_2018_exclusive.xml \
+    vendor/h4k3rom/config/permissions/pixel_2019_midyear_exclusive.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/pixel_2019_midyear_exclusive.xml \
+    vendor/h4k3rom/config/permissions/pixel_experience_2017.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/pixel_experience_2017.xml \
+    vendor/h4k3rom/config/permissions/pixel_experience_2018.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/pixel_experience_2018.xml \
+    vendor/h4k3rom/config/permissions/pixel_experience_2019_midyear.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/sysconfig/pixel_experience_2019_midyear.xml
 
-ifeq ($(LINEAGE_BUILDTYPE), RELEASE)
-    ifndef TARGET_VENDOR_RELEASE_BUILD_ID
-        LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(PRODUCT_VERSION_MAINTENANCE)$(PRODUCT_VERSION_DEVICE_SPECIFIC)-$(LINEAGE_BUILD)
-    else
-        ifeq ($(TARGET_BUILD_VARIANT),user)
-            ifeq ($(LINEAGE_VERSION_MAINTENANCE),0)
-                LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(TARGET_VENDOR_RELEASE_BUILD_ID)-$(LINEAGE_BUILD)
-            else
-                LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(LINEAGE_VERSION_MAINTENANCE)-$(TARGET_VENDOR_RELEASE_BUILD_ID)-$(LINEAGE_BUILD)
-            endif
-        else
-            LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(PRODUCT_VERSION_MAINTENANCE)$(PRODUCT_VERSION_DEVICE_SPECIFIC)-$(LINEAGE_BUILD)
-        endif
-    endif
-else
-    ifeq ($(LINEAGE_VERSION_MAINTENANCE),0)
-        ifeq ($(LINEAGE_VERSION_APPEND_TIME_OF_DAY),true)
-            LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(shell date -u +%Y%m%d_%H%M%S)-$(LINEAGE_BUILDTYPE)$(LINEAGE_EXTRAVERSION)-$(LINEAGE_BUILD)
-        else
-            LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(shell date -u +%Y%m%d)-$(LINEAGE_BUILDTYPE)$(LINEAGE_EXTRAVERSION)-$(LINEAGE_BUILD)
-        endif
-    else
-        ifeq ($(LINEAGE_VERSION_APPEND_TIME_OF_DAY),true)
-            LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(LINEAGE_VERSION_MAINTENANCE)-$(shell date -u +%Y%m%d_%H%M%S)-$(LINEAGE_BUILDTYPE)$(LINEAGE_EXTRAVERSION)-$(LINEAGE_BUILD)
-        else
-            LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(LINEAGE_VERSION_MAINTENANCE)-$(shell date -u +%Y%m%d)-$(LINEAGE_BUILDTYPE)$(LINEAGE_EXTRAVERSION)-$(LINEAGE_BUILD)
-        endif
-    endif
-endif
-
-PRODUCT_EXTRA_RECOVERY_KEYS += \
-    vendor/lineage/build/target/product/security/lineage
-
--include vendor/lineage-priv/keys/keys.mk
-
-LINEAGE_DISPLAY_VERSION := $(LINEAGE_VERSION)
-
-ifneq ($(PRODUCT_DEFAULT_DEV_CERTIFICATE),)
-ifneq ($(PRODUCT_DEFAULT_DEV_CERTIFICATE),build/target/product/security/testkey)
-    ifneq ($(LINEAGE_BUILDTYPE), UNOFFICIAL)
-        ifndef TARGET_VENDOR_RELEASE_BUILD_ID
-            ifneq ($(LINEAGE_EXTRAVERSION),)
-                # Remove leading dash from LINEAGE_EXTRAVERSION
-                LINEAGE_EXTRAVERSION := $(shell echo $(LINEAGE_EXTRAVERSION) | sed 's/-//')
-                TARGET_VENDOR_RELEASE_BUILD_ID := $(LINEAGE_EXTRAVERSION)
-            else
-                TARGET_VENDOR_RELEASE_BUILD_ID := $(shell date -u +%Y%m%d)
-            endif
-        else
-            TARGET_VENDOR_RELEASE_BUILD_ID := $(TARGET_VENDOR_RELEASE_BUILD_ID)
-        endif
-        ifeq ($(LINEAGE_VERSION_MAINTENANCE),0)
-            LINEAGE_DISPLAY_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(TARGET_VENDOR_RELEASE_BUILD_ID)-$(LINEAGE_BUILD)
-        else
-            LINEAGE_DISPLAY_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR).$(LINEAGE_VERSION_MAINTENANCE)-$(TARGET_VENDOR_RELEASE_BUILD_ID)-$(LINEAGE_BUILD)
-        endif
-    endif
-endif
-endif
-
--include $(WORKSPACE)/build_env/image-auto-bits.mk
--include vendor/lineage/config/partner_gms.mk
+# Google extra libraries (sketch/swipe)
+PRODUCT_COPY_FILES += \
+    vendor/h4k3rom/prebuilt/common/lib/libsketchology_native.so:$(TARGET_COPY_OUT_SYSTEM)/lib/libsketchology_native.so \
+    vendor/h4k3rom/prebuilt/common/lib64/libsketchology_native.so:$(TARGET_COPY_OUT_SYSTEM)/lib64/libsketchology_native.so
